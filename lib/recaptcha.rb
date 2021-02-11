@@ -77,6 +77,60 @@ module Recaptcha
     end
   end
 
+  def self.verify_via_api_call_v1_beta(response, options)
+    secret_key = options.fetch(:secret_key) { configuration.secret_key! }
+
+    verify_hash = { 'secret' => secret_key, 'response' => response }
+    verify_hash['remoteip'] = options[:remote_ip] if options.key?(:remote_ip)
+
+    reply = api_verification_v1_beta(verify_hash, timeout: options[:timeout])
+
+    token_properties = reply.fetch('tokenProperties', {})
+
+    success = token_properties['valid'] &&
+      hostname_valid?(token_properties['hostname'], options[:hostname]) &&
+      action_valid?(token_properties['action'], options[:action]) &&
+      score_above_threshold?(reply['score'], options[:minimum_score])
+
+    if options[:with_reply] == true
+      return success, reply
+    else
+      return success
+    end
+  end
+
+  def self.api_verification_v1_beta(verify_hash, timeout: nil)
+    timeout ||= DEFAULT_TIMEOUT
+
+    http = if configuration.proxy
+             proxy_server = URI.parse(configuration.proxy)
+             Net::HTTP::Proxy(proxy_server.host, proxy_server.port, proxy_server.user, proxy_server.password)
+           else
+             Net::HTTP
+           end
+
+    new_verify_hash = {
+      event: {
+        token: verify_hash["response"],
+        siteKey: configuration.site_key
+      }
+    }.stringify_keys
+
+    uri = URI.parse(configuration.v1_beta_verify_url)
+
+    http_instance = http.new(uri.host, uri.port)
+    http_instance.read_timeout = http_instance.open_timeout = timeout
+    http_instance.use_ssl = true if uri.port == 443
+
+    request = Net::HTTP::Post.new(uri.request_uri)
+    request.body = new_verify_hash.to_json
+    request['Content-Type'] = 'application/json'
+
+    response = http_instance.request(request).body
+
+    JSON.parse(response)
+  end
+
   def self.hostname_valid?(hostname, validation)
     validation ||= configuration.hostname
 

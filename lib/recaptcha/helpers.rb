@@ -180,13 +180,15 @@ module Recaptcha
       nonce = options[:nonce]
       nonce_attr = " nonce='#{nonce}'" if nonce
 
+      execute_method = Recaptcha.configuration.v1_beta_mode ? "grecaptcha.enterprise.execute" : "grecaptcha.execute"
+
       <<-HTML
         <script#{nonce_attr}>
           // Define function so that we can call it again later if we need to reset it
           // This executes reCAPTCHA and then calls our callback.
           function #{recaptcha_v3_execute_function_name(action)}() {
             grecaptcha.ready(function() {
-              grecaptcha.execute('#{site_key}', {action: '#{action}'}).then(function(token) {
+              #{execute_method}('#{site_key}', {action: '#{action}'}).then(function(token) {
                 #{callback}('#{id}', token)
               });
             });
@@ -200,7 +202,7 @@ module Recaptcha
           async function #{recaptcha_v3_async_execute_function_name(action)}() {
             return new Promise((resolve, reject) => {
               grecaptcha.ready(async function() {
-                resolve(await grecaptcha.execute('#{site_key}', {action: '#{action}'}))
+                resolve(await #{execute_method}('#{site_key}', {action: '#{action}'}))
               });
             })
           };
@@ -214,11 +216,13 @@ module Recaptcha
       nonce = options[:nonce]
       nonce_attr = " nonce='#{nonce}'" if nonce
 
+      execute_method = Recaptcha.configuration.v1_beta_mode ? "grecaptcha.enterprise.execute" : "grecaptcha.execute"
+
       <<-HTML
         <script#{nonce_attr}>
           function #{recaptcha_v3_execute_function_name(action)}() {
             grecaptcha.ready(function() {
-              grecaptcha.execute('#{site_key}', {action: '#{action}'}).then(function(token) {
+              #{execute_method}('#{site_key}', {action: '#{action}'}).then(function(token) {
                 #{callback}('#{id}', token)
               });
             });
@@ -285,8 +289,8 @@ module Recaptcha
             };
 
             var el = document.querySelector("#{selector_attr}")
-            if (!!el) {
               var form = closestForm(el);
+            if (!!el) {
               if (form) {
                 form.submit();
               }

@@ -32,10 +32,11 @@ module Recaptcha
   class Configuration
     DEFAULTS = {
       'server_url' => 'https://www.recaptcha.net/recaptcha/api.js',
-      'verify_url' => 'https://www.recaptcha.net/recaptcha/api/siteverify'
+      'verify_url' => 'https://www.recaptcha.net/recaptcha/api/siteverify',
+      'v1_beta_server_url' => 'https://www.google.com/recaptcha/enterprise.js' 
     }.freeze
 
-    attr_accessor :default_env, :skip_verify_env, :secret_key, :site_key, :proxy, :handle_timeouts_gracefully, :hostname
+    attr_accessor :default_env, :skip_verify_env, :secret_key, :site_key, :proxy, :handle_timeouts_gracefully, :hostname, :project_id, :api_key, :v1_beta_mode
     attr_writer :api_server_url, :verify_url
 
     def initialize #:nodoc:
@@ -45,6 +46,11 @@ module Recaptcha
 
       @secret_key = ENV['RECAPTCHA_SECRET_KEY']
       @site_key = ENV['RECAPTCHA_SITE_KEY']
+      @project_id = ENV['RECAPTCHA_PROJECT_ID']
+      @api_key = ENV['RECAPTCHA_API_KEY']
+
+      @v1_beta_mode = ENV['RECAPTCHA_V1_BETA_MODE']
+
       @verify_url = nil
       @api_server_url = nil
     end
@@ -55,6 +61,22 @@ module Recaptcha
 
     def site_key!
       site_key || raise(RecaptchaError, "No site key specified.")
+    end
+
+    def api_key!
+      api_key || raise(RecaptchaError, "No API key specified.")
+    end
+
+    def project_id!
+      project_id || raise(RecaptchaError, "No Project ID specified.")
+    end
+
+    def v1_beta_api_server_url
+      @v1_beta_api_server_url || DEFAULTS.fetch('v1_beta_server_url')
+    end
+
+    def v1_beta_verify_url
+      @v1_beta_verify_url || "https://recaptchaenterprise.googleapis.com/v1beta1/projects/#{self.project_id}/assessments?key=#{self.api_key}"
     end
 
     def api_server_url

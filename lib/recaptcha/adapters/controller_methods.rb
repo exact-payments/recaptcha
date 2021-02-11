@@ -24,8 +24,15 @@ module Recaptcha
               options = options.merge(remote_ip: remoteip.to_s) if remoteip
             end
 
-            success, @_recaptcha_reply =
-              Recaptcha.verify_via_api_call(recaptcha_response, options.merge(with_reply: true))
+            if Recaptcha.configuration.v1_beta_mode
+              success, @_recaptcha_reply =
+                Recaptcha.verify_via_api_call_v1_beta(recaptcha_response, options.merge(with_reply: true))
+ 
+            else
+              success, @_recaptcha_reply =
+                Recaptcha.verify_via_api_call(recaptcha_response, options.merge(with_reply: true))
+            end
+
             success
           end
 
